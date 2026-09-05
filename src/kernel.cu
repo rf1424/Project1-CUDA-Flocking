@@ -64,6 +64,11 @@ void checkCUDAError(const char *msg, int line = -1) {
 /*! Size of the starting area in simulation space. */
 #define scene_scale 100.0f
 
+// comment out to use cell width = the neighborhood distance, 27 cells
+// uncomment to use cell width = 2x the neighborhood distance, 8 cells
+#define DoubleCellWidth 
+
+
 /***********************************************
 * Kernel state (pointers are device pointers) *
 ***********************************************/
@@ -77,6 +82,7 @@ dim3 threadsPerBlock(blockSize);
 // boid cares about its neighbors' velocities.
 // These are called ping-pong buffers.
 glm::vec3 *dev_pos;
+glm::vec3* dev_pos2;
 glm::vec3 *dev_vel1;
 glm::vec3 *dev_vel2;
 
@@ -175,6 +181,11 @@ void Boids::initSimulation(int N) {
 
   // LOOK-2.1 computing grid params
   gridCellWidth = std::max(std::max(rule1Distance, rule2Distance), rule3Distance);
+  
+#ifdef DoubleCellWidth
+  gridCellWidth *= 2.0f;
+#endif
+
   int halfSideCount = (int)(scene_scale / gridCellWidth) + 1;
   gridSideCount = 2 * halfSideCount;
 
@@ -198,6 +209,9 @@ void Boids::initSimulation(int N) {
 
   cudaMalloc((void**)&dev_gridCellEndIndices, gridCellCount * sizeof(int));
   checkCUDAErrorWithLine("cudaMalloc dev_gridCellEndIndices failed!");
+
+  cudaMalloc((void**)&dev_pos2, N * sizeof(glm::vec3));
+  checkCUDAErrorWithLine("cudaMalloc dev_pos2 failed!");
 
   cudaDeviceSynchronize();
 }
@@ -428,16 +442,43 @@ __global__ void kernUpdateVelNeighborSearchScattered(
         return;
     }
   // - Identify the grid cell that this particle is in
-    glm::vec3 cellIdx = (pos[i] - gridMin) * inverseCellWidth;
-    int cellIdx1D = gridIndex3Dto1D(cellIdx.x, cellIdx.y, cellIdx.z, gridResolution);
-  // - Identify which cells may contain neighbors. This isn't always 8.
-    int xMin = cellIdx.x == 0 ? 0 : -1;
-	int xMax = cellIdx.x == gridResolution - 1 ? 0 : 1;
-	int yMin = cellIdx.y == 0 ? 0 : -1;
-	int yMax = cellIdx.y == gridResolution - 1 ? 0 : 1;
-	int zMin = cellIdx.z == 0 ? 0 : -1;
-	int zMax = cellIdx.z == gridResolution - 1 ? 0 : 1;
+    // glm::vec3 cellIdx = (pos[i] - gridMin) * inverseCellWidth;
 
+    glm::ivec3 cellIdx = glm::ivec3((pos[i] - gridMin) * inverseCellWidth);
+    int cellIdx1D = gridIndex3Dto1D(cellIdx.x, cellIdx.y, cellIdx.z, gridResolution);
+
+  // - Identify which cells may contain neighbors. This isn't always 8.
+	int xMin, xMax, yMin, yMax, zMin, zMax;
+#ifdef DoubleCellWidth
+     // 8 cells
+    glm::vec3 cellMin = gridMin + glm::vec3(cellIdx) * cellWidth;
+    glm::vec3 localPos = pos[i] - cellMin;
+    int xOffset = (localPos.x < cellWidth * 0.5f) ? -1 : 0;
+    int yOffset = (localPos.y < cellWidth * 0.5f) ? -1 : 0;
+    int zOffset = (localPos.z < cellWidth * 0.5f) ? -1 : 0;
+
+	xMin = 0 + xOffset;
+	xMax = 1 + xOffset;
+	yMin = 0 + yOffset;
+	yMax = 1 + yOffset;
+	zMin = 0 + zOffset;
+	zMax = 1 + zOffset;
+#else 
+    // 27 cells 
+	xMin = -1;
+	xMax = 1;
+	yMin = -1;
+	yMax = 1;
+	zMin = -1;
+	zMax = 1;
+#endif
+
+xMin = cellIdx.x == 0 ? 0 : xMin;
+xMax = cellIdx.x == gridResolution - 1 ? 0 : xMax;
+yMin = cellIdx.y == 0 ? 0 : yMin;
+yMax = cellIdx.y == gridResolution - 1 ? 0 : yMax;
+zMin = cellIdx.z == 0 ? 0 : zMin;
+zMax = cellIdx.z == gridResolution - 1 ? 0 : zMax;
 
     // v1
     glm::vec3 perceivedCenter = glm::vec3(0.0f);

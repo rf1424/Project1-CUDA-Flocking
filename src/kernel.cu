@@ -448,7 +448,9 @@ __global__ void kernUpdateVelNeighborSearchScattered(
     int cellIdx1D = gridIndex3Dto1D(cellIdx.x, cellIdx.y, cellIdx.z, gridResolution);
 
   // - Identify which cells may contain neighbors. This isn't always 8.
-	int xMin, xMax, yMin, yMax, zMin, zMax;
+    glm::ivec3 min;
+	glm::ivec3 max;
+
 #ifdef DoubleCellWidth
      // 8 cells
     glm::vec3 cellMin = gridMin + glm::vec3(cellIdx) * cellWidth;
@@ -456,29 +458,22 @@ __global__ void kernUpdateVelNeighborSearchScattered(
     int xOffset = (localPos.x < cellWidth * 0.5f) ? -1 : 0;
     int yOffset = (localPos.y < cellWidth * 0.5f) ? -1 : 0;
     int zOffset = (localPos.z < cellWidth * 0.5f) ? -1 : 0;
+	glm::ivec3 offset = glm::ivec3(xOffset, yOffset, zOffset);
 
-	xMin = 0 + xOffset;
-	xMax = 1 + xOffset;
-	yMin = 0 + yOffset;
-	yMax = 1 + yOffset;
-	zMin = 0 + zOffset;
-	zMax = 1 + zOffset;
+	min = glm::ivec3(0) + offset;
+	max = glm::ivec3(1) + offset;
 #else 
     // 27 cells 
-	xMin = -1;
-	xMax = 1;
-	yMin = -1;
-	yMax = 1;
-	zMin = -1;
-	zMax = 1;
+	min = glm::ivec3(-1);
+	max = glm::ivec3(1);
 #endif
 
-xMin = cellIdx.x == 0 ? 0 : xMin;
-xMax = cellIdx.x == gridResolution - 1 ? 0 : xMax;
-yMin = cellIdx.y == 0 ? 0 : yMin;
-yMax = cellIdx.y == gridResolution - 1 ? 0 : yMax;
-zMin = cellIdx.z == 0 ? 0 : zMin;
-zMax = cellIdx.z == gridResolution - 1 ? 0 : zMax;
+    min.x = cellIdx.x == 0 ? 0 : min.x;
+    max.x = cellIdx.x == gridResolution - 1 ? 0 : max.x;
+    min.y = cellIdx.y == 0 ? 0 : min.y;
+    max.y = cellIdx.y == gridResolution - 1 ? 0 : max.y;
+    min.z = cellIdx.z == 0 ? 0 : min.z;
+    max.z = cellIdx.z == gridResolution - 1 ? 0 : max.z;
 
     // v1
     glm::vec3 perceivedCenter = glm::vec3(0.0f);
@@ -489,11 +484,10 @@ zMax = cellIdx.z == gridResolution - 1 ? 0 : zMax;
     glm::vec3 perceivedVelocity = glm::vec3(0.0f);
     float neighborCount3 = 0.0f;
 
-
     //z, y, x order
-    for (int k = zMin; k <= zMax; ++k) {
-        for (int j = yMin; j <= yMax; ++j) {
-			for (int m = xMin; m <= xMax; ++m) {
+    for (int k = min.z; k <= max.z; ++k) {
+        for (int j = min.y; j <= max.y; ++j) {
+			for (int m = min.x; m <= max.x; ++m) {
 
 				int neighbCellIdx = gridIndex3Dto1D(cellIdx.x + m, cellIdx.y + j, cellIdx.z + k, gridResolution);
 

@@ -449,9 +449,10 @@ __global__ void kernUpdateVelNeighborSearchScattered(
     float neighborCount3 = 0.0f;
 
 
-    for (int m = xMin; m <= xMax; ++m) {
+    //z, y, x order
+    for (int k = zMin; k <= zMax; ++k) {
         for (int j = yMin; j <= yMax; ++j) {
-            for (int k = zMin; k <= zMax; ++k) {
+			for (int m = xMin; m <= xMax; ++m) {
 
 				int neighbCellIdx = gridIndex3Dto1D(cellIdx.x + m, cellIdx.y + j, cellIdx.z + k, gridResolution);
 

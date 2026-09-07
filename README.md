@@ -5,7 +5,7 @@ Project 1 - Flocking**
 
 * Rin Fukuoka
   * [LinkedIn](https://www.linkedin.com/in/rin-fukuoka-4260772a2/) / [Personal website](https://www.rfukuoka.com/)
-* Tested on: Windows 11, i9-13900HX @ 2.20 GHz, 32GB RAM, RTX 4080 Laptop GPU 12GB (Personal)
+* Tested on: Windows 11, i9-13900HX @ 2.20 GHz, 32GB RAM, RTX 4080 Laptop GPU 12GB
 
 <p align="center">
   <img src="images/boids-50k-coherent-grid.gif">
@@ -26,7 +26,7 @@ Project 1 - Flocking**
 
 ## Overview
 
-In this project, I implemented a Boids Simulation, in which each particle (boid) models flocking behavior similar to that observed in birds or fish. Every boid follows three simple rules based only on its nearby neighbors:
+In this project, I implemented a **Boids Simulation**, in which each particle (boid) models flocking behavior similar to that observed in birds or fish. Every boid follows three simple rules based only on its nearby neighbors:
 
 1. **Cohesion** - move toward the average position of nearby boids.
 2. **Separation** - steer away from boids that are too close.
@@ -89,4 +89,4 @@ I implemented two approaches to neighbor cell search. The first uses a cell widt
 
 *Tested at N = 100,000-1,000,000 boids, block size = 128, visualization off.*
 
-The data shows 27-cell outperforming 8-cell, and the gap widens as boid count increases. Since a boid only interacts with others within its neighbor radius, the 8-cell method wastes more time checking boids that fall inside the searched cells but outside the true neighbor distance, only to be rejected by the distance check. As boid count grows, boid density stays roughly constant, so the number of wasted checks in that extra volume grows too — meaning the fixed inefficiency of the 8-cell approach costs more in absolute terms at higher boid counts.
+The data shows 27-cell outperforming 8-cell, and this gap widens as boid count increases. I suppose this is since a boid only interacts with others within its neighbor radius, the 8-cell method wastes more time checking boids that fall inside the searched cells but outside the true neighbor distance (only to be rejected by the distance check.) 
